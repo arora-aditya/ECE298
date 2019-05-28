@@ -1,0 +1,11 @@
+LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/arch=x86
+LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/name=Local
+LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/os=win32
+configDescList=org.eclipse.launchbar.core.descriptorType.default\:MSP430FR4133.ccxml,org.eclipse.launchbar.core.descriptorType.default\:API_button,org.eclipse.launchbar.core.descriptorType.default\:API_buttonMatrix,org.eclipse.launchbar.core.descriptorType.default\:API_buttonMatrix2,org.eclipse.launchbar.core.descriptorType.default\:API_servoSG90,org.eclipse.launchbar.core.descriptorType.default\:API_singlePWM_singleChannel,org.eclipse.launchbar.core.descriptorType.default\:Example_Keypad,org.eclipse.launchbar.core.descriptorType.default\:pwmMultiple,org.eclipse.launchbar.core.descriptorType.default\:timer_a_ex5_pwmMultipleUp,org.eclipse.launchbar.core.descriptorType.default\:API_fadeLED_PWM,org.eclipse.launchbar.core.descriptorType.default\:blinkLED_PWM,org.eclipse.launchbar.core.descriptorType.default\:fadeLED_PWM,org.eclipse.launchbar.core.descriptorType.default\:HelloWorld,org.eclipse.launchbar.core.descriptorType.default\:test
+eclipse.preferences.version=1
+org.eclipse.launchbar.core.descriptorType.default\:API_button/activeLaunchMode=run
+org.eclipse.launchbar.core.descriptorType.default\:API_button/activeLaunchTarget=org.eclipse.launchbar.core.launchTargetType.local\:Local
+org.eclipse.launchbar.core.descriptorType.default\:Example_Keypad/activeLaunchMode=run
+org.eclipse.launchbar.core.descriptorType.default\:HelloWorld/activeLaunchMode=debug
+org.eclipse.launchbar.core.descriptorType.default\:MSP430FR4133.ccxml/activeLaunchMode=debug
+org.eclipse.launchbar.core.descriptorType.default\:MSP430FR4133.ccxml/activeLaunchTarget=org.eclipse.launchbar.core.launchTargetType.local\:Local

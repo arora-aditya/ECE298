@@ -1,0 +1,5 @@
+MODULES_CODE_OFFSET=
+MODULES_DATA_OFFSET=
+MODULES_MRU_PATH=\#SYM_\#(,)path\=N\:\\ECE298\\API_Examples\\Example_Keypad\\Debug\\Example_Keypad.out\#THREAD_IDS\#TI MSP430 USB1/MSP430
+eclipse.preferences.version=1
+useAnnotationsPrefPage=true

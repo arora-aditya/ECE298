@@ -1,0 +1,15 @@
+Distance Sensor: https://www.sparkfun.com/products/13959, 
+keypad entry: https://www.sparkfun.com/products/14662
+LED indicators (
+GRN: https://www.digikey.ca/product-detail/en/sunled/XLUG12D/1497-1023-ND/4745838, 
+YELLOW: https://www.digikey.ca/products/en?keywords=1497-1033-ND,
+ORANGE: https://www.digikey.ca/products/en?keywords=1497-1263-ND, 
+RED: https://www.digikey.ca/product-detail/en/sunled/XLUR12D/1497-1031-ND/4745846
+could be used)
+Break-away Module  Header Pins: No Link
+8-to-1 MUX: https://www.sparkfun.com/products/13906
+
+s/w to control, 
+s/w to display, 
+compute a calibrated distance, 
+thresholds for range proximities must be programmable (e.g., via keypad entry), LED indicators (GRN, YELLOW, ORANGE, RED could be used) to indicate the proximity range of objects.
