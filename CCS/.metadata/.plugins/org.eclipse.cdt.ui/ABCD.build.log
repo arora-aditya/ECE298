@@ -1,8 +1,0 @@
-
-**** Build of configuration Debug for project ABCD ****
-
-"C:\\Software\\ccs83\\ccsv8\\utils\\bin\\gmake" -k -j 4 all -O 
- 
-gmake[1]: 'ABCD.out' is up to date.
-
-**** Build Finished ****
