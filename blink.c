@@ -6,6 +6,8 @@
 
 #include <msp430.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include "driverlib\MSP430FR2xx_4xx\driverlib.h"
 #include "Board.h"
 #include "hal_LCD.h"
@@ -32,16 +34,22 @@ void Key();
 void setupKeypad();
 void toggleLED(unsigned int i);
 char pressedKey[2];
+void measure_Distance();
+int distance_cm;
 
 int main(void) {
   WDT_A_hold(WDT_A_BASE); // Stop watchdog timer
+  PMM_unlockLPM5();
   Init_GPIO();
-  setupKeypad();
+//  setupKeypad();
   Init_Clock();
   Init_RTC();
   Init_LCD();
   _EINT(); // Start interrupt
-
+  distance_cm = -1;
+  while(1){
+      measure_Distance();
+  }
   volatile unsigned int j = 0;
   for(;;){
       volatile unsigned int i;
@@ -51,10 +59,42 @@ int main(void) {
       toggleLED(j++);
   }
 
-  PMM_unlockLPM5(); // Need this for LED to turn on- in case of "abnormal off state"
+   // Need this for LED to turn on- in case of "abnormal off state"
   __bis_SR_register(GIE); // Need this for interrupts or else "abnormal termination"
   __no_operation(); //For debugger
   return 0;
+}
+
+void measure_Distance(){
+    int echo_pulse_duration;      // time in us
+
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN7);
+    GPIO_setAsInputPin(GPIO_PORT_P8, GPIO_PIN1);
+
+    // Set up Timer_A1: SMCLK clock, input divider=1,
+    // "continuous" mode. It counts from 0 to 65535,
+    // incrementing once per clock cycle (i.e. every 1us).
+    TA1CTL = TASSEL_2 + ID_0 + MC_2;
+    // Now just monitor distance sensor
+    __delay_cycles(50000);
+    // Send a 20us trigger pulse
+    P1OUT |= BIT7;                // trigger high
+    __delay_cycles(10);           // 10us delay
+    P1OUT &= ~BIT7;               // trigger low
+
+    // Measure duration of echo pulse
+    while ((P8IN & BIT1) == 0);   // Wait for start of echo pulse
+    TA1R = 0;                     // Reset timer at start of pulse
+    while ((P8IN & BIT1) > 0);    // Wait for end of echo pulse
+    echo_pulse_duration = TA1R;   // Current timer value is pulse length
+    if(echo_pulse_duration < 0){
+        echo_pulse_duration = 5800;
+    }
+    distance_cm =  echo_pulse_duration/58; // Convert from us to cm
+
+    if (distance_cm < 50) P1OUT |= BIT0; // LED on
+    else P1OUT &= ~BIT0;                 // LED off
+//        displayScrollText(itoa(distance_cm));
 }
 
 void toggleLED(unsigned int i){
