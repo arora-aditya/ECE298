@@ -21,41 +21,106 @@ char hexaKeys[4][3] = {
 };
 
 
-#define COL1 GPIO_PORT_P1, GPIO_PIN3
-#define COL2 GPIO_PORT_P1, GPIO_PIN4
-#define COL3 GPIO_PORT_P1, GPIO_PIN5
-#define ROW1 GPIO_PORT_P5, GPIO_PIN3
-#define ROW2 GPIO_PORT_P5, GPIO_PIN2
-#define ROW3 GPIO_PORT_P5, GPIO_PIN0
-#define ROW4 GPIO_PORT_P1, GPIO_PIN6
+// #define COL1 GPIO_PORT_P1, GPIO_PIN3
+// #define COL2 GPIO_PORT_P1, GPIO_PIN4
+// #define COL3 GPIO_PORT_P1, GPIO_PIN5
+// #define ROW1 GPIO_PORT_P5, GPIO_PIN3
+// #define ROW2 GPIO_PORT_P5, GPIO_PIN2
+// #define ROW3 GPIO_PORT_P5, GPIO_PIN0
+// #define ROW4 GPIO_PORT_P1, GPIO_PIN6
 
-// enum LED {GREEN, YELLOW, ORANGE, RED}
+typedef enum LED_t {GREEN, YELLOW, ORANGE, RED, NUM_LEDS} LED;
+
+typedef enum KEYPAD_STATE_t {RANGE_1, RANGE_2, RANGE_3, RANGE_4, NUM_RANGES} KEYPAD_STATE;
 
 void Key();
 void setupKeypad();
 void toggleLED(unsigned int i);
-char pressedKey[2];
+char pressedKey;
 void measure_Distance();
 int distance_cm;
+
+const char distance_ranges_format_string[30] = "R1: %d R2: %d R3: %d R4: %d";
+
+typedef struct distance_ranges {
+  int r1;
+  int r2;
+  int r3;
+  int r4;
+} distance_r;
+
+distance_r dist;
+
+volatile unsigned int j = 0;
+
+char output[30];
+//dist.r1 = 0;
+//dist.r2 = 0;
+//dist.r3 = 0;
+//dist.r4 = 0;
+KEYPAD_STATE keypad_state = RANGE_1;
+LED led_state = NUM_LEDS;
+
+int digit_num = 0;
+
+void get_num(){
+  digit_num += 1;
+  switch(keypad_state){
+    case RANGE_1: dist.r1 = dist.r1*10 + atoi(&pressedKey); break;
+    case RANGE_2: dist.r2 = dist.r2*10 + atoi(&pressedKey); break;
+    case RANGE_3: dist.r3 = dist.r3*10 + atoi(&pressedKey); break;
+    case RANGE_4: dist.r4 = dist.r4*10 + atoi(&pressedKey); break;
+  }
+  if(digit_num%3 == 0){
+    switch(keypad_state){
+      case RANGE_1: keypad_state=RANGE_2; break;
+      case RANGE_2: keypad_state=RANGE_3; break;
+      case RANGE_3: keypad_state=RANGE_4; break;
+      case RANGE_4: keypad_state=NUM_RANGES; break;
+    }
+  }
+}
+
+void toggle_LED_distance(){
+  if(distance_cm > dist.r4){
+      led_state = GREEN;
+  }else if(distance_cm > dist.r3){
+      led_state = YELLOW;
+  } else if(distance_cm > dist.r2){
+      led_state = ORANGE;
+  } else if(distance_cm > dist.r1){
+      led_state = RED;
+  } else{
+      led_state = NUM_LEDS;
+  }
+  toggleLED(led_state);
+}
 
 int main(void) {
   WDT_A_hold(WDT_A_BASE); // Stop watchdog timer
   PMM_unlockLPM5();
   Init_GPIO();
- setupKeypad();
   Init_Clock();
   Init_RTC();
   Init_LCD();
-  _EINT(); // Start interrupt
+  LCD_E_selectDisplayMemory(LCD_E_BASE, LCD_E_DISPLAYSOURCE_MEMORY);
   distance_cm = -1;
-  volatile unsigned int j = 0;
-  for(;;){
-      volatile unsigned int i;
-      i = 20000;
-      do i--;
-      while(i != 0);
-      toggleLED(j++);
+  setupKeypad();
+  _EINT(); // Start interrupt
+
+
+  while(keypad_state != NUM_RANGES){
+      toggleLED((j++)%4); __delay_cycles(100000);
   }
+  P1IE &= 0x00;
+  led_state = RED;
+  sprintf(output, distance_ranges_format_string, dist.r1, dist.r2, dist.r3, dist.r4);
+  displayScrollText(output);
+  for(;;){
+    measure_Distance();
+    toggle_LED_distance();
+  }
+
 
    // Need this for LED to turn on- in case of "abnormal off state"
   __bis_SR_register(GIE); // Need this for interrupts or else "abnormal termination"
@@ -66,7 +131,6 @@ int main(void) {
 void measure_Distance(){
     int echo_pulse_duration;      // time in us
 
-    P1DIR = BIT0+BIT7;
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN7);
     GPIO_setAsInputPin(GPIO_PORT_P8, GPIO_PIN1);
 
@@ -90,37 +154,39 @@ void measure_Distance(){
         echo_pulse_duration = 5800;
     }
     distance_cm =  echo_pulse_duration/58; // Convert from us to cm
-
-    if (distance_cm < 50) P1OUT |= BIT0; // LED on
-    else P1OUT &= ~BIT0;                 // LED off
-//        displayScrollText(itoa(distance_cm));
 }
 
-void toggleLED(unsigned int i){
-    i = i%4;
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN0);
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN0);
+void toggleLED(LED i){
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
+    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
     GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN7);
     GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN7);
     GPIO_setAsOutputPin(GPIO_PORT_P8, GPIO_PIN0);
     GPIO_setOutputLowOnPin(GPIO_PORT_P8, GPIO_PIN0);
     switch(i){
-        case 0:
+        case GREEN:
             // green
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
             break;
-        case 1:
+        case YELLOW:
             // yellow
             GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
             break;
-        case 2:
+        case ORANGE:
             // orange
             GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN7);
             break;
-        case 3:
+        case RED:
             // red
             GPIO_setOutputHighOnPin(GPIO_PORT_P8, GPIO_PIN0);
             break;
+        default:
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN7);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P8, GPIO_PIN0);
     }
 }
 
@@ -164,60 +230,60 @@ void Key() {
   GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
   GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN3) == GPIO_INPUT_PIN_LOW) {     // Column 1 to GND
-      pressedKey[0] = hexaKeys[0][0];
+      pressedKey = hexaKeys[0][0];
   }
   GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN4) == GPIO_INPUT_PIN_LOW) {     // Column 2 to GND
-      pressedKey[0] = hexaKeys[0][1];
+      pressedKey = hexaKeys[0][1];
   }
   GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) {     // Column 3 to GND
-      pressedKey[0] = hexaKeys[0][2];
+      pressedKey = hexaKeys[0][2];
   }
 
   GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3 | GPIO_PIN2 | GPIO_PIN0);
   GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
   GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN3) == GPIO_INPUT_PIN_LOW) {     // Column 1 to GND
-      pressedKey[0] = hexaKeys[1][0];
+      pressedKey = hexaKeys[1][0];
   }
   GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN4) == GPIO_INPUT_PIN_LOW) {     // Column 2 to GND
-      pressedKey[0] = hexaKeys[1][1];
+      pressedKey = hexaKeys[1][1];
   }
   GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) {     // Column 3 to GND
-      pressedKey[0] = hexaKeys[1][2];
+      pressedKey = hexaKeys[1][2];
   }
 
   GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3 | GPIO_PIN2 | GPIO_PIN0);
   GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
   GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN0);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN3) == GPIO_INPUT_PIN_LOW) {     // Column 1 to GND
-      pressedKey[0] = hexaKeys[2][0];
+      pressedKey = hexaKeys[2][0];
   }
   GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN0);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN4) == GPIO_INPUT_PIN_LOW) {     // Column 2 to GND
-      pressedKey[0] = hexaKeys[2][1];
+      pressedKey = hexaKeys[2][1];
   }
   GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN0);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) {     // Column 3 to GND
-      pressedKey[0] = hexaKeys[2][2];
+      pressedKey = hexaKeys[2][2];
   }
 
   GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN3 | GPIO_PIN2 | GPIO_PIN0);
   GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN6);
   GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN2);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN3) == GPIO_INPUT_PIN_LOW) {     // Column 1 to GND
-      pressedKey[0] = hexaKeys[3][0];
+      pressedKey = hexaKeys[3][0];
   }
   GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN2);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN4) == GPIO_INPUT_PIN_LOW) {     // Column 2 to GND
-      pressedKey[0] = hexaKeys[3][1];
+      pressedKey = hexaKeys[3][1];
   }
   GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN2);
   if (GPIO_getInputPinValue(GPIO_PORT_P1, GPIO_PIN5) == GPIO_INPUT_PIN_LOW) {     // Column 3 to GND
-      pressedKey[0] = hexaKeys[3][2];
+      pressedKey = hexaKeys[3][2];
   }
   GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN3 | GPIO_PIN2 | GPIO_PIN0);
   GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN6);
@@ -228,10 +294,8 @@ __interrupt void PORT1_ISR(void)
 {
   Key();
   GPIO_clearInterrupt(GPIO_PORT_P1, GPIO_PIN5 | GPIO_PIN4 | GPIO_PIN3);
-  LCD_E_selectDisplayMemory(LCD_E_BASE, LCD_E_DISPLAYSOURCE_MEMORY);
-  clearLCD();
-  displayScrollText(pressedKey);
-  measure_Distance();
+  get_num();
+  // measure_Distance();
 }
 
 #pragma vector = RTC_VECTOR
