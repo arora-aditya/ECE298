@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <file.h>
 #include "driverlib\MSP430FR2xx_4xx\driverlib.h"
 #include "Board.h"
 #include "hal_LCD.h"
@@ -19,6 +20,8 @@ char hexaKeys[4][3] = {
   { '7','8','9' },
   { '*','0','#' }
 };
+
+char int_to_char[10] = {'0','1','2','3','4','5','6','7','8','9'};
 
 
 // #define COL1 GPIO_PORT_P1, GPIO_PIN3
@@ -40,6 +43,8 @@ char pressedKey;
 void measure_Distance();
 int distance_cm;
 
+int two_point_six = -1;
+
 const char distance_ranges_format_string[30] = "R1: %d R2: %d R3: %d R4: %d";
 
 typedef struct distance_ranges {
@@ -54,14 +59,12 @@ distance_r dist;
 volatile unsigned int j = 0;
 
 char output[30];
-//dist.r1 = 0;
-//dist.r2 = 0;
-//dist.r3 = 0;
-//dist.r4 = 0;
+
 KEYPAD_STATE keypad_state = RANGE_1;
 LED led_state = NUM_LEDS;
 
 int digit_num = 0;
+char * lmao;
 
 void get_num(){
   digit_num += 1;
@@ -105,22 +108,43 @@ int main(void) {
   Init_LCD();
   LCD_E_selectDisplayMemory(LCD_E_BASE, LCD_E_DISPLAYSOURCE_MEMORY);
   distance_cm = -1;
-  setupKeypad();
+
   _EINT(); // Start interrupt
-
-
+  int l, k;
+  dist.r1 = 10;
+  dist.r2 = 50;
+  dist.r3 = 100;
+  dist.r4 = 150;
+  clearLCD();
+  char default_str[20] = "DEFAULT B2:6";
+  displayScrollText(default_str);
+  for(k = 0; k < 20000; k++){
+      for(l = 0; l < 20000; l++);
+      toggleLED((k)%4);
+      if(two_point_six > 0){
+          keypad_state = NUM_RANGES;
+          break;
+        }
+  }
+  setupKeypad();
   while(keypad_state != NUM_RANGES){
       toggleLED((j++)%4); __delay_cycles(100000);
+      if(two_point_six > 0){
+        keypad_state = NUM_RANGES;
+      }
   }
   P1IE &= 0x00;
+  P2IE &= 0x00;
   led_state = RED;
   sprintf(output, distance_ranges_format_string, dist.r1, dist.r2, dist.r3, dist.r4);
   displayScrollText(output);
   for(;;){
     measure_Distance();
     toggle_LED_distance();
+    showChar(int_to_char[distance_cm%10], pos3);
+    showChar(int_to_char[(int)distance_cm/10], pos2);
+    showChar(int_to_char[(int)distance_cm/100], pos1);
   }
-
 
    // Need this for LED to turn on- in case of "abnormal off state"
   __bis_SR_register(GIE); // Need this for interrupts or else "abnormal termination"
@@ -132,7 +156,7 @@ void measure_Distance(){
     int echo_pulse_duration;      // time in us
 
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN7);
-    GPIO_setAsInputPin(GPIO_PORT_P8, GPIO_PIN1);
+    GPIO_setAsInputPin(GPIO_PORT_P8, GPIO_PIN2);
 
     // Set up Timer_A1: SMCLK clock, input divider=1,
     // "continuous" mode. It counts from 0 to 65535,
@@ -146,9 +170,9 @@ void measure_Distance(){
     P1OUT &= ~BIT7;               // trigger low
 
     // Measure duration of echo pulse
-    while ((P8IN & BIT1) == 0);   // Wait for start of echo pulse
+    while ((P8IN & BIT2) == 0);   // Wait for start of echo pulse
     TA1R = 0;                     // Reset timer at start of pulse
-    while ((P8IN & BIT1) > 0);    // Wait for end of echo pulse
+    while ((P8IN & BIT2) > 0);    // Wait for end of echo pulse
     echo_pulse_duration = TA1R;   // Current timer value is pulse length
     if(echo_pulse_duration < 0){
         echo_pulse_duration = 5800;
@@ -157,36 +181,36 @@ void measure_Distance(){
 }
 
 void toggleLED(LED i){
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN1);
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
-    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN7);
-    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN7);
+    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN1);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P5, GPIO_PIN1);
+    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN5);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN5);
     GPIO_setAsOutputPin(GPIO_PORT_P8, GPIO_PIN0);
     GPIO_setOutputLowOnPin(GPIO_PORT_P8, GPIO_PIN0);
+    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN7);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN7);
     switch(i){
         case GREEN:
             // green
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN5);
             break;
         case YELLOW:
             // yellow
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN1);
             break;
         case ORANGE:
             // orange
-            GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN7);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P8, GPIO_PIN0);
             break;
         case RED:
             // red
-            GPIO_setOutputHighOnPin(GPIO_PORT_P8, GPIO_PIN0);
+            GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN7);
             break;
         default:
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN7);
-            GPIO_setOutputHighOnPin(GPIO_PORT_P8, GPIO_PIN0);
+          GPIO_setOutputHighOnPin(GPIO_PORT_P5, GPIO_PIN1);
+          GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN5);
+          GPIO_setOutputHighOnPin(GPIO_PORT_P8, GPIO_PIN0);
+          GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN7);
     }
 }
 
@@ -295,6 +319,15 @@ __interrupt void PORT1_ISR(void)
   Key();
   GPIO_clearInterrupt(GPIO_PORT_P1, GPIO_PIN5 | GPIO_PIN4 | GPIO_PIN3);
   get_num();
+  // measure_Distance();
+}
+
+#pragma vector = PORT2_VECTOR
+__interrupt void PORT2_ISR(void)
+{
+  two_point_six = 1;
+  GPIO_clearInterrupt(GPIO_PORT_P2, GPIO_PIN6);
+  // get_num();
   // measure_Distance();
 }
 

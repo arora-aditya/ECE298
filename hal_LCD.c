@@ -177,9 +177,12 @@ void showChar(char c, int position)
     else if (c == '*'){
         LCDMEMW[position/2] = 0xF;
     }
-    else if (c == '*'){
-            LCDMEMW[position/2] = 0xB0;
-        }
+    else if (c == '#'){
+        LCDMEMW[position/2] = 0xB0;
+    }
+    else if (c == ':'){
+        LCDMEMW[position/2] = 0x0A;
+    }
     else if (c >= '0' && c <= '9')
     {
         // Display digit
@@ -238,10 +241,10 @@ void Init_GPIO()
 
 //
 //    // Configure button S2 (P2.6) interrupt
-//    GPIO_selectInterruptEdge(GPIO_PORT_P2, GPIO_PIN6, GPIO_HIGH_TO_LOW_TRANSITION);
-//    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P2, GPIO_PIN6);
-//    GPIO_clearInterrupt(GPIO_PORT_P2, GPIO_PIN6);
-//    GPIO_enableInterrupt(GPIO_PORT_P2, GPIO_PIN6);
+   GPIO_selectInterruptEdge(GPIO_PORT_P2, GPIO_PIN6, GPIO_HIGH_TO_LOW_TRANSITION);
+   GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P2, GPIO_PIN6);
+   GPIO_clearInterrupt(GPIO_PORT_P2, GPIO_PIN6);
+   GPIO_enableInterrupt(GPIO_PORT_P2, GPIO_PIN6);
 
     // Set P4.1 and P4.2 as Secondary Module Function Input, LFXT.
     GPIO_setAsPeripheralModuleFunctionInputPin(
