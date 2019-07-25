@@ -118,14 +118,14 @@ int main(void) {
   clearLCD();
   char default_str[20] = "DEFAULT B2:6";
   displayScrollText(default_str);
-  for(k = 0; k < 20000; k++){
-      for(l = 0; l < 20000; l++);
-      toggleLED((k)%4);
-      if(two_point_six > 0){
-          keypad_state = NUM_RANGES;
-          break;
-        }
-  }
+  // for(k = 0; k < 2000; k++){
+  //     for(l = 0; l < 10000; l++);
+  //     toggleLED((k)%4);
+  //     if(two_point_six > 0){
+  //         keypad_state = NUM_RANGES;
+  //         break;
+  //       }
+  // }
   setupKeypad();
   while(keypad_state != NUM_RANGES){
       toggleLED((j++)%4); __delay_cycles(100000);
@@ -319,7 +319,6 @@ __interrupt void PORT1_ISR(void)
   Key();
   GPIO_clearInterrupt(GPIO_PORT_P1, GPIO_PIN5 | GPIO_PIN4 | GPIO_PIN3);
   get_num();
-  // measure_Distance();
 }
 
 #pragma vector = PORT2_VECTOR
@@ -327,8 +326,6 @@ __interrupt void PORT2_ISR(void)
 {
   two_point_six = 1;
   GPIO_clearInterrupt(GPIO_PORT_P2, GPIO_PIN6);
-  // get_num();
-  // measure_Distance();
 }
 
 #pragma vector = RTC_VECTOR
