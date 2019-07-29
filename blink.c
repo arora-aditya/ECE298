@@ -3,6 +3,9 @@
  * Include pressedKey on debugger's "Expressions" to see the hexaKeys' value when you alternate between the two keys
  * Did not include button debouncer in this (releasing the button does not set pressedKey back to Value 0 '\x00')
  */
+/* SOURCES
+ * [1]Frozen, "Msp430 hcsr04 interrupt", Texas Instruments E2E Support Forums, 2016. .
+ */
 
 #include <msp430.h>
 #include <stdio.h>
@@ -152,7 +155,7 @@ int main(void) {
   return 0;
 }
 
-void measure_Distance(){
+void measure_Distance(){ /* SOURCE: [1] */
     int echo_pulse_duration;      // time in us
 
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN7);
